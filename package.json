@@ -1,8 +1,8 @@
 {
-  "name": "apple-build",
-  "displayName": "Apple Build",
+  "name": "native-builds",
+  "displayName": "Native Builds",
   "description": "Build & run iOS / macOS / iPadOS Xcode projects from the VS Code status bar with scheme + device pickers and a play/stop button.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "mariotatis",
   "license": "MIT",
   "engines": {
@@ -29,67 +29,67 @@
   "contributes": {
     "commands": [
       {
-        "command": "appleBuild.selectScheme",
-        "title": "Apple Build: Select Scheme"
+        "command": "nativeBuilds.selectScheme",
+        "title": "Native Builds: Select Scheme"
       },
       {
-        "command": "appleBuild.selectDestination",
-        "title": "Apple Build: Select Destination (Device)"
+        "command": "nativeBuilds.selectDestination",
+        "title": "Native Builds: Select Destination (Device)"
       },
       {
-        "command": "appleBuild.build",
-        "title": "Apple Build: Build",
+        "command": "nativeBuilds.build",
+        "title": "Native Builds: Build",
         "icon": "$(tools)"
       },
       {
-        "command": "appleBuild.run",
-        "title": "Apple Build: Run on Selected Device",
+        "command": "nativeBuilds.run",
+        "title": "Native Builds: Run on Selected Device",
         "icon": "$(play)"
       },
       {
-        "command": "appleBuild.stop",
-        "title": "Apple Build: Stop Build / Run",
+        "command": "nativeBuilds.stop",
+        "title": "Native Builds: Stop Build / Run",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "appleBuild.refresh",
-        "title": "Apple Build: Refresh Project / Schemes / Devices"
+        "command": "nativeBuilds.refresh",
+        "title": "Native Builds: Refresh Project / Schemes / Devices"
       },
       {
-        "command": "appleBuild.buildMenu",
-        "title": "Apple Build: Choose Build Action"
+        "command": "nativeBuilds.buildMenu",
+        "title": "Native Builds: Choose Build Action"
       },
       {
-        "command": "appleBuild.showOutput",
-        "title": "Apple Build: Show Build Output"
+        "command": "nativeBuilds.showOutput",
+        "title": "Native Builds: Show Build Output"
       }
     ],
     "keybindings": [
       {
-        "command": "appleBuild.build",
+        "command": "nativeBuilds.build",
         "key": "ctrl+alt+b",
         "mac": "cmd+alt+b"
       },
       {
-        "command": "appleBuild.run",
+        "command": "nativeBuilds.run",
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r"
       },
       {
-        "command": "appleBuild.stop",
+        "command": "nativeBuilds.stop",
         "key": "ctrl+alt+.",
         "mac": "cmd+alt+."
       }
     ],
     "configuration": {
-      "title": "Apple Build",
+      "title": "Native Builds",
       "properties": {
-        "appleBuild.quiet": {
+        "nativeBuilds.quiet": {
           "type": "boolean",
           "default": true,
           "description": "Pass -quiet to xcodebuild so the output channel shows only warnings, errors, and the final result. Disable for full build logs."
         },
-        "appleBuild.revealOutput": {
+        "nativeBuilds.revealOutput": {
           "type": "string",
           "default": "onError",
           "enum": [
@@ -102,14 +102,14 @@
             "Only open the output panel when a build fails.",
             "Open the output panel on every build/run."
           ],
-          "description": "When to automatically reveal the Apple Build output panel."
+          "description": "When to automatically reveal the Native Builds output panel."
         },
-        "appleBuild.outputFilter": {
+        "nativeBuilds.outputFilter": {
           "type": "string",
           "default": "",
           "description": "Optional regular expression. When set, only build output lines matching it are shown (e.g. \"error:|warning:|BUILD SUCCEEDED|BUILD FAILED\"). Applied on top of -quiet. Leave empty to show all (already-quieted) output."
         },
-        "appleBuild.additionalBuildArgs": {
+        "nativeBuilds.additionalBuildArgs": {
           "type": "array",
           "items": {
             "type": "string"
@@ -117,7 +117,7 @@
           "default": [],
           "description": "Extra arguments appended to every xcodebuild invocation (e.g. [\"-configuration\", \"Debug\", \"CODE_SIGNING_ALLOWED=NO\"])."
         },
-        "appleBuild.includeAllSimulators": {
+        "nativeBuilds.includeAllSimulators": {
           "type": "boolean",
           "default": false,
           "description": "Include watchOS / tvOS / visionOS simulators in the device picker. When false, only iOS/iPadOS simulators plus My Mac are listed."

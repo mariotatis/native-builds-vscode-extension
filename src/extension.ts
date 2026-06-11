@@ -10,9 +10,9 @@ import {
   pickPrimaryContainer,
 } from "./xcode";
 
-const STATE_SCHEME = "appleBuild.scheme";
-const STATE_DESTINATION = "appleBuild.destination";
-const STATE_BUILD_MODE = "appleBuild.buildMode";
+const STATE_SCHEME = "nativeBuilds.scheme";
+const STATE_DESTINATION = "nativeBuilds.destination";
+const STATE_BUILD_MODE = "nativeBuilds.buildMode";
 
 type Action = "build" | "run";
 
@@ -54,10 +54,10 @@ const BUILD_MODES: BuildModeOption[] = [
   },
 ];
 
-let controller: AppleBuildController | undefined;
+let controller: NativeBuildsController | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  controller = new AppleBuildController(context);
+  controller = new NativeBuildsController(context);
   context.subscriptions.push(controller);
   await controller.initialize();
 }
@@ -67,7 +67,7 @@ export function deactivate(): void {
   controller = undefined;
 }
 
-class AppleBuildController {
+class NativeBuildsController {
   private readonly context: vscode.ExtensionContext;
   private readonly output: vscode.OutputChannel;
   private readonly builder: Builder;
@@ -95,7 +95,7 @@ class AppleBuildController {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.output = vscode.window.createOutputChannel("Apple Build");
+    this.output = vscode.window.createOutputChannel("Native Builds");
     this.builder = new Builder(this.output);
 
     this.buildMode =
@@ -109,12 +109,12 @@ class AppleBuildController {
     this.runItem = mkItem(101);
     this.stopItem = mkItem(100);
 
-    this.schemeItem.command = "appleBuild.selectScheme";
-    this.destinationItem.command = "appleBuild.selectDestination";
-    this.buildItem.command = "appleBuild.build";
-    this.buildMenuItem.command = "appleBuild.buildMenu";
-    this.runItem.command = "appleBuild.run";
-    this.stopItem.command = "appleBuild.stop";
+    this.schemeItem.command = "nativeBuilds.selectScheme";
+    this.destinationItem.command = "nativeBuilds.selectDestination";
+    this.buildItem.command = "nativeBuilds.build";
+    this.buildMenuItem.command = "nativeBuilds.buildMenu";
+    this.runItem.command = "nativeBuilds.run";
+    this.stopItem.command = "nativeBuilds.stop";
 
     this.disposables.push(
       this.output,
@@ -125,32 +125,32 @@ class AppleBuildController {
       this.runItem,
       this.stopItem,
       this.builder,
-      vscode.commands.registerCommand("appleBuild.selectScheme", () =>
+      vscode.commands.registerCommand("nativeBuilds.selectScheme", () =>
         this.selectScheme()
       ),
-      vscode.commands.registerCommand("appleBuild.selectDestination", () =>
+      vscode.commands.registerCommand("nativeBuilds.selectDestination", () =>
         this.selectDestination()
       ),
-      vscode.commands.registerCommand("appleBuild.build", () =>
+      vscode.commands.registerCommand("nativeBuilds.build", () =>
         this.execute("build")
       ),
-      vscode.commands.registerCommand("appleBuild.buildMenu", () =>
+      vscode.commands.registerCommand("nativeBuilds.buildMenu", () =>
         this.showBuildMenu()
       ),
-      vscode.commands.registerCommand("appleBuild.run", () => this.execute("run")),
-      vscode.commands.registerCommand("appleBuild.stop", () =>
+      vscode.commands.registerCommand("nativeBuilds.run", () => this.execute("run")),
+      vscode.commands.registerCommand("nativeBuilds.stop", () =>
         this.builder.stop()
       ),
-      vscode.commands.registerCommand("appleBuild.refresh", () =>
+      vscode.commands.registerCommand("nativeBuilds.refresh", () =>
         this.initialize(true)
       ),
-      vscode.commands.registerCommand("appleBuild.showOutput", () =>
+      vscode.commands.registerCommand("nativeBuilds.showOutput", () =>
         this.builder.showOutput()
       ),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.initialize()),
       vscode.workspace.onDidChangeConfiguration((e) => {
         // The device list depends on this setting; refresh it live.
-        if (e.affectsConfiguration("appleBuild.includeAllSimulators")) {
+        if (e.affectsConfiguration("nativeBuilds.includeAllSimulators")) {
           void this.loadDestinations(true).then(() => this.render());
         }
       })
@@ -197,7 +197,7 @@ class AppleBuildController {
     } catch (err) {
       this.schemes = [];
       vscode.window.showErrorMessage(
-        `Apple Build: could not list schemes — ${errMsg(err)}`
+        `Native Builds: could not list schemes — ${errMsg(err)}`
       );
     }
 
@@ -219,7 +219,7 @@ class AppleBuildController {
     } catch (err) {
       this.destinations = [];
       vscode.window.showErrorMessage(
-        `Apple Build: could not list devices — ${errMsg(err)}`
+        `Native Builds: could not list devices — ${errMsg(err)}`
       );
     }
 
@@ -241,7 +241,7 @@ class AppleBuildController {
       await this.loadSchemes(true);
     }
     if (this.schemes.length === 0) {
-      vscode.window.showWarningMessage("Apple Build: no schemes found.");
+      vscode.window.showWarningMessage("Native Builds: no schemes found.");
       this.render();
       return;
     }
@@ -277,7 +277,7 @@ class AppleBuildController {
   /** Shared entry point for the Build and Run buttons. */
   private async execute(action: Action): Promise<void> {
     if (!this.container) {
-      vscode.window.showWarningMessage("Apple Build: no Xcode project detected.");
+      vscode.window.showWarningMessage("Native Builds: no Xcode project detected.");
       return;
     }
     // If something is already building/running, stop it and start fresh.
@@ -298,7 +298,7 @@ class AppleBuildController {
     }
     if (action === "run" && this.destination.group === "generic") {
       vscode.window.showWarningMessage(
-        "Apple Build: pick a concrete device to run (not a generic destination)."
+        "Native Builds: pick a concrete device to run (not a generic destination)."
       );
       return;
     }
@@ -374,13 +374,13 @@ class AppleBuildController {
     if (result.cancelled) {
       // A user-initiated restart will start its own build; stay quiet then.
       if (!this.restarting) {
-        vscode.window.setStatusBarMessage("$(debug-stop) Apple Build stopped", 4000);
+        vscode.window.setStatusBarMessage("$(debug-stop) Native Builds stopped", 4000);
       }
       return;
     }
     if (!result.succeeded) {
       const choice = await vscode.window.showErrorMessage(
-        "Apple Build failed.",
+        "Native Builds failed.",
         "Show Output"
       );
       if (choice === "Show Output") {
@@ -390,7 +390,7 @@ class AppleBuildController {
     }
 
     if (action === "build") {
-      vscode.window.setStatusBarMessage("$(check) Apple Build succeeded", 5000);
+      vscode.window.setStatusBarMessage("$(check) Native Builds succeeded", 5000);
       return;
     }
 
@@ -412,11 +412,11 @@ class AppleBuildController {
         throw new Error("Could not locate the built .app from build settings.");
       }
       await launch(this.destination, product, (m) => this.builder.log(m));
-      vscode.window.setStatusBarMessage("$(rocket) Apple Build running", 5000);
+      vscode.window.setStatusBarMessage("$(rocket) Native Builds running", 5000);
     } catch (err) {
       this.builder.log(`❌ ${errMsg(err)}`);
       const choice = await vscode.window.showErrorMessage(
-        `Apple Build: run failed — ${errMsg(err)}`,
+        `Native Builds: run failed — ${errMsg(err)}`,
         "Show Output"
       );
       if (choice === "Show Output") {
@@ -432,7 +432,7 @@ class AppleBuildController {
       return;
     }
     this.schemeItem.text = `$(layers) ${this.scheme ?? "No scheme"}`;
-    this.schemeItem.tooltip = `Apple Build · ${this.container.fileName}\nScheme: ${
+    this.schemeItem.tooltip = `Native Builds · ${this.container.fileName}\nScheme: ${
       this.scheme ?? "none"
     }\nClick to change scheme`;
 
@@ -555,7 +555,7 @@ function buildDestinationQuickPick(
 }
 
 function config(): vscode.WorkspaceConfiguration {
-  return vscode.workspace.getConfiguration("appleBuild");
+  return vscode.workspace.getConfiguration("nativeBuilds");
 }
 
 function errMsg(err: unknown): string {

@@ -87,7 +87,7 @@ export class Builder {
         filter = new RegExp(req.outputFilter);
       } catch (err) {
         this.output.appendLine(
-          `⚠️  Ignoring invalid appleBuild.outputFilter: ${String(err)}`
+          `⚠️  Ignoring invalid nativeBuilds.outputFilter: ${String(err)}`
         );
       }
     }

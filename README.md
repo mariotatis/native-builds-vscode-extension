@@ -1,4 +1,4 @@
-# Apple Build
+# Native Builds
 
 Build and run **iOS / iPadOS / macOS** Xcode projects straight from the VS Code
 status bar — no Xcode window required.
@@ -15,16 +15,16 @@ starts fresh.
 
 ## Settings
 
-Edit in **Settings** (`Cmd+,` → search "Apple Build") or `settings.json`. The
+Edit in **Settings** (`Cmd+,` → search "Native Builds") or `settings.json`. The
 build action (Build / Clean Build) is chosen from the status bar dropdown, not here.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `appleBuild.quiet` | `true` | Pass `-quiet` to xcodebuild — only warnings, errors, and the final result. |
-| `appleBuild.revealOutput` | `onError` | When to auto-open the output panel: `never`, `onError`, or `always`. |
-| `appleBuild.outputFilter` | `""` | Regex; only matching output lines are shown (e.g. `error:\|warning:\|BUILD SUCCEEDED\|BUILD FAILED`). |
-| `appleBuild.additionalBuildArgs` | `[]` | Extra args appended to every invocation (e.g. `["-configuration", "Debug", "CODE_SIGNING_ALLOWED=NO"]`). |
-| `appleBuild.includeAllSimulators` | `false` | Also list watchOS / tvOS / visionOS simulators. |
+| `nativeBuilds.quiet` | `true` | Pass `-quiet` to xcodebuild — only warnings, errors, and the final result. |
+| `nativeBuilds.revealOutput` | `onError` | When to auto-open the output panel: `never`, `onError`, or `always`. |
+| `nativeBuilds.outputFilter` | `""` | Regex; only matching output lines are shown (e.g. `error:\|warning:\|BUILD SUCCEEDED\|BUILD FAILED`). |
+| `nativeBuilds.additionalBuildArgs` | `[]` | Extra args appended to every invocation (e.g. `["-configuration", "Debug", "CODE_SIGNING_ALLOWED=NO"]`). |
+| `nativeBuilds.includeAllSimulators` | `false` | Also list watchOS / tvOS / visionOS simulators. |
 
 ## Requirements
 
