@@ -1,58 +1,11 @@
 import * as vscode from "vscode";
 import { Builder } from "./builder";
-import { launch, resolveProduct } from "./run";
-import {
-  Destination,
-  XcodeContainer,
-  findXcodeContainers,
-  listDestinations,
-  listSchemes,
-  pickPrimaryContainer,
-} from "./xcode";
+import { BuildMode, Destination, Platform, detectPlatform } from "./platform";
 
 const STATE_SCHEME = "nativeBuilds.scheme";
 const STATE_DESTINATION = "nativeBuilds.destination";
-const STATE_BUILD_MODE = "nativeBuilds.buildMode";
 
 type Action = "build" | "run";
-
-/** xcodebuild action chosen from the Build button dropdown. */
-type BuildMode = "build" | "clean build" | "clean";
-
-interface BuildModeOption {
-  mode: BuildMode;
-  /** Codicon shown on the status bar button, e.g. "$(tools)". */
-  icon: string;
-  /** Full label shown in the dropdown. */
-  label: string;
-  /** Short label for the status bar button. */
-  short: string;
-  description: string;
-}
-
-const BUILD_MODES: BuildModeOption[] = [
-  {
-    mode: "build",
-    icon: "$(tools)",
-    label: "Build",
-    short: "Build",
-    description: "xcodebuild build",
-  },
-  {
-    mode: "clean build",
-    icon: "$(sync)",
-    label: "Clean Build Folder, then Build",
-    short: "Clean Build",
-    description: "xcodebuild clean build",
-  },
-  {
-    mode: "clean",
-    icon: "$(trash)",
-    label: "Clean Build Folder",
-    short: "Clean",
-    description: "xcodebuild clean",
-  },
-];
 
 let controller: NativeBuildsController | undefined;
 
@@ -80,14 +33,14 @@ class NativeBuildsController {
   private readonly runItem: vscode.StatusBarItem;
   private readonly stopItem: vscode.StatusBarItem;
 
-  private container: XcodeContainer | undefined;
+  private platform: Platform | undefined;
   private schemes: string[] = [];
   private destinations: Destination[] = [];
   private scheme: string | undefined;
   private destination: Destination | undefined;
   private activeAction: Action | undefined;
-  /** Which xcodebuild action the Build button runs. */
-  private buildMode: BuildMode = "build";
+  /** The build mode currently executing — drives only the spinner label. */
+  private activeMode: BuildMode = "build";
   /** Promise for the in-flight build+launch, used to await a clean restart. */
   private running: Promise<void> | undefined;
   /** True while we are tearing down a build to immediately start another. */
@@ -97,9 +50,6 @@ class NativeBuildsController {
     this.context = context;
     this.output = vscode.window.createOutputChannel("Native Builds");
     this.builder = new Builder(this.output);
-
-    this.buildMode =
-      context.workspaceState.get<BuildMode>(STATE_BUILD_MODE) ?? "build";
 
     // Left-aligned group; higher priority renders further left.
     this.schemeItem = mkItem(105);
@@ -169,17 +119,11 @@ class NativeBuildsController {
       return;
     }
 
-    const containers: XcodeContainer[] = [];
-    for (const folder of folders) {
-      containers.push(...(await findXcodeContainers(folder.uri.fsPath)));
-    }
-
-    const primary = pickPrimaryContainer(containers);
-    if (!primary) {
+    this.platform = await detectPlatform(folders, this.output);
+    if (!this.platform) {
       this.hideAll();
       return;
     }
-    this.container = primary;
 
     this.showAll();
     await this.loadSchemes(forceRefresh);
@@ -188,16 +132,17 @@ class NativeBuildsController {
   }
 
   private async loadSchemes(forceRefresh: boolean): Promise<void> {
-    if (!this.container) {
+    if (!this.platform) {
       return;
     }
-    this.schemeItem.text = "$(sync~spin) Loading schemes…";
+    const noun = this.platform.schemeNoun;
+    this.schemeItem.text = `$(sync~spin) Loading ${noun}s…`;
     try {
-      this.schemes = await listSchemes(this.container);
+      this.schemes = await this.platform.listSchemes(forceRefresh);
     } catch (err) {
       this.schemes = [];
       vscode.window.showErrorMessage(
-        `Native Builds: could not list schemes — ${errMsg(err)}`
+        `Native Builds: could not list ${noun}s — ${errMsg(err)}`
       );
     }
 
@@ -212,10 +157,13 @@ class NativeBuildsController {
   }
 
   private async loadDestinations(forceRefresh: boolean): Promise<void> {
+    if (!this.platform) {
+      return;
+    }
     this.destinationItem.text = "$(sync~spin) Loading devices…";
     const includeAll = config().get<boolean>("includeAllSimulators", false);
     try {
-      this.destinations = await listDestinations(includeAll);
+      this.destinations = await this.platform.listDestinations(includeAll);
     } catch (err) {
       this.destinations = [];
       vscode.window.showErrorMessage(
@@ -237,16 +185,17 @@ class NativeBuildsController {
   }
 
   private async selectScheme(): Promise<void> {
+    const noun = this.platform?.schemeNoun ?? "scheme";
     if (this.schemes.length === 0) {
       await this.loadSchemes(true);
     }
     if (this.schemes.length === 0) {
-      vscode.window.showWarningMessage("Native Builds: no schemes found.");
+      vscode.window.showWarningMessage(`Native Builds: no ${noun}s found.`);
       this.render();
       return;
     }
     const pick = await vscode.window.showQuickPick(this.schemes, {
-      placeHolder: "Select the Xcode scheme (target) to build",
+      placeHolder: `Select the ${noun} to build`,
     });
     if (pick) {
       this.scheme = pick;
@@ -274,10 +223,16 @@ class NativeBuildsController {
     this.render();
   }
 
-  /** Shared entry point for the Build and Run buttons. */
-  private async execute(action: Action): Promise<void> {
-    if (!this.container) {
-      vscode.window.showWarningMessage("Native Builds: no Xcode project detected.");
+  /**
+   * Shared entry point for the Build and Run buttons and the build-action
+   * dropdown. `mode` is the one-off action to run (defaults to a plain build);
+   * it is transient — the Build button always stays a plain "Build".
+   */
+  private async execute(action: Action, mode: BuildMode = "build"): Promise<void> {
+    if (!this.platform) {
+      vscode.window.showWarningMessage(
+        "Native Builds: no Xcode or Gradle project detected."
+      );
       return;
     }
     // If something is already building/running, stop it and start fresh.
@@ -304,37 +259,40 @@ class NativeBuildsController {
     }
 
     this.activeAction = action;
+    this.activeMode = mode;
     this.render();
-    this.running = this.doWork(action);
+    this.running = this.doWork(action, mode);
     try {
       await this.running;
     } finally {
       this.running = undefined;
       this.activeAction = undefined;
+      this.activeMode = "build";
       this.render();
     }
   }
 
   /**
-   * Show the Build-action dropdown and remember the choice. This only changes
-   * which action the Build button will run — it does not build anything.
+   * Show the build-action dropdown and run the chosen action once. This is a
+   * one-off (e.g. Clean) — it does not change the Build button, which always
+   * stays a plain "Build".
    */
   private async showBuildMenu(): Promise<void> {
+    if (!this.platform) {
+      return;
+    }
     const pick = await vscode.window.showQuickPick(
-      BUILD_MODES.map((m) => ({
+      this.platform.buildModes.map((m) => ({
         label: `${m.icon} ${m.label}`,
         description: m.description,
-        picked: m.mode === this.buildMode,
         mode: m.mode,
       })),
-      { placeHolder: "Choose the build action for the Build button" }
+      { placeHolder: "Choose a build action to run now" }
     );
     if (!pick) {
       return;
     }
-    this.buildMode = pick.mode;
-    await this.context.workspaceState.update(STATE_BUILD_MODE, pick.mode);
-    this.render();
+    await this.execute("build", pick.mode);
   }
 
   /** Cancel the in-flight build/run and wait for it to fully terminate. */
@@ -351,23 +309,22 @@ class NativeBuildsController {
     this.restarting = false;
   }
 
-  /** Run xcodebuild and, for the run action, install + launch the product. */
-  private async doWork(action: Action): Promise<void> {
-    if (!this.container || !this.scheme || !this.destination) {
+  /** Run the build and, for the run action, install + launch the product. */
+  private async doWork(action: Action, mode: BuildMode): Promise<void> {
+    if (!this.platform || !this.scheme || !this.destination) {
       return;
     }
     const cfg = config();
-    // Run always plain-builds; the Build button uses the chosen build mode.
-    const buildAction = action === "run" ? "build" : this.buildMode;
+    // Run always plain-builds; build uses the one-off mode from the button/menu.
+    const buildAction = action === "run" ? "build" : mode;
 
-    const result = await this.builder.run({
-      container: this.container,
+    const spec = this.platform.buildCommand({
       scheme: this.scheme,
-      destination: this.destination.value,
+      destination: this.destination,
       action: buildAction,
-      extraArgs: cfg.get<string[]>("additionalBuildArgs", []),
+    });
+    const result = await this.builder.run(spec, {
       outputFilter: cfg.get<string>("outputFilter", ""),
-      quiet: cfg.get<boolean>("quiet", true),
       reveal: cfg.get<"never" | "onError" | "always">("revealOutput", "onError"),
     });
 
@@ -399,19 +356,15 @@ class NativeBuildsController {
   }
 
   private async launchProduct(): Promise<void> {
-    if (!this.container || !this.scheme || !this.destination) {
+    if (!this.platform || !this.scheme || !this.destination) {
       return;
     }
     try {
-      const product = await resolveProduct(
-        this.container,
-        this.scheme,
-        this.destination.value
-      );
-      if (!product) {
-        throw new Error("Could not locate the built .app from build settings.");
-      }
-      await launch(this.destination, product, (m) => this.builder.log(m));
+      await this.platform.launch({
+        scheme: this.scheme,
+        destination: this.destination,
+        log: (m) => this.builder.log(m),
+      });
       vscode.window.setStatusBarMessage("$(rocket) Native Builds running", 5000);
     } catch (err) {
       this.builder.log(`❌ ${errMsg(err)}`);
@@ -428,13 +381,15 @@ class NativeBuildsController {
   // --- rendering ---------------------------------------------------------
 
   private render(): void {
-    if (!this.container) {
+    if (!this.platform) {
       return;
     }
-    this.schemeItem.text = `$(layers) ${this.scheme ?? "No scheme"}`;
-    this.schemeItem.tooltip = `Native Builds · ${this.container.fileName}\nScheme: ${
+    const noun = this.platform.schemeNoun;
+    const Noun = capitalize(noun);
+    this.schemeItem.text = `$(layers) ${this.scheme ?? `No ${noun}`}`;
+    this.schemeItem.tooltip = `Native Builds · ${this.platform.projectName}\n${Noun}: ${
       this.scheme ?? "none"
-    }\nClick to change scheme`;
+    }\nClick to change ${noun}`;
 
     this.destinationItem.text = `$(device-mobile) ${
       this.destination?.label ?? "No device"
@@ -446,26 +401,28 @@ class NativeBuildsController {
     const warnBg = new vscode.ThemeColor("statusBarItem.warningBackground");
     const busy = this.activeAction !== undefined;
 
-    const mode = BUILD_MODES.find((m) => m.mode === this.buildMode) ?? BUILD_MODES[0];
-
     if (this.activeAction === "build") {
-      const verb = this.buildMode === "clean" ? "Cleaning…" : "Building…";
+      const verb =
+        this.activeMode === "clean"
+          ? "Cleaning…"
+          : this.activeMode === "clean build"
+          ? "Cleaning + Building…"
+          : "Building…";
       this.buildItem.text = `$(sync~spin) ${verb}`;
       this.buildItem.tooltip = `${verb} click to restart (cancels the current build)`;
       this.buildItem.backgroundColor = warnBg;
     } else {
-      this.buildItem.text = `${mode.icon} ${mode.short}`;
+      // The Build button is always a plain build; clean is run from the dropdown.
+      this.buildItem.text = "$(tools) Build";
       this.buildItem.tooltip = busy
-        ? `Cancel the current ${this.activeAction} and run "${mode.description}"`
-        : `${mode.description} — ${this.scheme ?? "?"} for ${
-            this.destination?.label ?? "?"
-          }`;
+        ? `Cancel the current ${this.activeAction} and build ${this.scheme ?? "?"}`
+        : `Build ${this.scheme ?? "?"} for ${this.destination?.label ?? "?"}`;
       this.buildItem.backgroundColor = undefined;
     }
 
-    // Caret next to Build: opens the build-action dropdown.
+    // Caret next to Build: opens the one-off build-action dropdown.
     this.buildMenuItem.text = "$(chevron-down)";
-    this.buildMenuItem.tooltip = "Choose build action (Build / Clean Build Folder)";
+    this.buildMenuItem.tooltip = "Run a build action (Build / Clean…)";
 
     if (this.activeAction === "run") {
       this.runItem.text = "$(sync~spin) Running…";
@@ -499,7 +456,7 @@ class NativeBuildsController {
   }
 
   private hideAll(): void {
-    this.container = undefined;
+    this.platform = undefined;
     this.schemeItem.hide();
     this.destinationItem.hide();
     this.buildItem.hide();
@@ -528,10 +485,17 @@ function buildDestinationQuickPick(
   const groupLabels: Record<Destination["group"], string> = {
     mac: "macOS",
     device: "Connected Devices",
+    emulator: "Emulators",
     simulator: "Simulators",
     generic: "Generic",
   };
-  const order: Destination["group"][] = ["mac", "device", "simulator", "generic"];
+  const order: Destination["group"][] = [
+    "mac",
+    "device",
+    "emulator",
+    "simulator",
+    "generic",
+  ];
 
   const items: DestinationQuickPickItem[] = [];
   for (const group of order) {
@@ -560,4 +524,8 @@ function config(): vscode.WorkspaceConfiguration {
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }

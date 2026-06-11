@@ -1,8 +1,8 @@
 {
   "name": "native-builds",
   "displayName": "Native Builds",
-  "description": "Build & run iOS / macOS / iPadOS Xcode projects from the VS Code status bar with scheme + device pickers and a play/stop button.",
-  "version": "0.8.0",
+  "description": "Build & run iOS / macOS / iPadOS Xcode projects and Android (Gradle/Kotlin) apps from the VS Code status bar with scheme/variant + device pickers and a play/stop button.",
+  "version": "0.9.5",
   "publisher": "mariotatis",
   "license": "MIT",
   "engines": {
@@ -17,12 +17,20 @@
     "ipados",
     "xcode",
     "xcodebuild",
-    "swift"
+    "swift",
+    "android",
+    "kotlin",
+    "gradle",
+    "emulator"
   ],
   "icon": "media/icon.png",
   "activationEvents": [
     "workspaceContains:**/*.xcodeproj",
     "workspaceContains:**/*.xcworkspace",
+    "workspaceContains:**/build.gradle",
+    "workspaceContains:**/build.gradle.kts",
+    "workspaceContains:**/settings.gradle",
+    "workspaceContains:**/settings.gradle.kts",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -121,6 +129,24 @@
           "type": "boolean",
           "default": false,
           "description": "Include watchOS / tvOS / visionOS simulators in the device picker. When false, only iOS/iPadOS simulators plus My Mac are listed."
+        },
+        "nativeBuilds.androidSdkPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Android SDK (the folder containing 'platform-tools' and 'emulator'). Leave empty to auto-detect from ANDROID_HOME / ANDROID_SDK_ROOT or the platform default (~/Library/Android/sdk on macOS)."
+        },
+        "nativeBuilds.javaHome": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a JDK home used to run Gradle (the folder containing 'bin/java'). Leave empty to auto-detect from JAVA_HOME, then Android Studio's bundled JDK, then installed JVMs. Example: '/Applications/Android Studio.app/Contents/jbr/Contents/Home'."
+        },
+        "nativeBuilds.gradleArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments appended to every Gradle invocation for Android projects (e.g. [\"--offline\", \"-Pfoo=bar\"])."
         }
       }
     }

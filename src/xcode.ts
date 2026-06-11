@@ -2,6 +2,11 @@ import { execFile } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
+import type { Destination } from "./platform";
+
+// The Destination type lives in platform.ts (shared with Android); re-export it
+// so existing `import { Destination } from "./xcode"` callers keep working.
+export type { Destination };
 
 const execFileAsync = promisify(execFile);
 
@@ -17,18 +22,6 @@ export interface XcodeContainer {
   dir: string;
   /** Name without extension, e.g. "LiveDesktop". */
   name: string;
-}
-
-/** A build destination shown in the device picker. */
-export interface Destination {
-  /** Human label shown in the status bar / quick pick, e.g. "iPhone 15 (iOS 17.2)". */
-  label: string;
-  /** Optional secondary line in the quick pick. */
-  detail?: string;
-  /** The string passed to xcodebuild -destination. */
-  value: string;
-  /** Rough grouping for the quick pick separators. */
-  group: "mac" | "device" | "simulator" | "generic";
 }
 
 const IGNORED_DIRS = new Set([
