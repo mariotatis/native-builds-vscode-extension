@@ -1,0 +1,139 @@
+{
+  "name": "apple-build",
+  "displayName": "Apple Build",
+  "description": "Build & run iOS / macOS / iPadOS Xcode projects from the VS Code status bar with scheme + device pickers and a play/stop button.",
+  "version": "0.7.0",
+  "publisher": "mariotatis",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "ios",
+    "macos",
+    "ipados",
+    "xcode",
+    "xcodebuild",
+    "swift"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "workspaceContains:**/*.xcodeproj",
+    "workspaceContains:**/*.xcworkspace",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "appleBuild.selectScheme",
+        "title": "Apple Build: Select Scheme"
+      },
+      {
+        "command": "appleBuild.selectDestination",
+        "title": "Apple Build: Select Destination (Device)"
+      },
+      {
+        "command": "appleBuild.build",
+        "title": "Apple Build: Build",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "appleBuild.run",
+        "title": "Apple Build: Run on Selected Device",
+        "icon": "$(play)"
+      },
+      {
+        "command": "appleBuild.stop",
+        "title": "Apple Build: Stop Build / Run",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "appleBuild.refresh",
+        "title": "Apple Build: Refresh Project / Schemes / Devices"
+      },
+      {
+        "command": "appleBuild.buildMenu",
+        "title": "Apple Build: Choose Build Action"
+      },
+      {
+        "command": "appleBuild.showOutput",
+        "title": "Apple Build: Show Build Output"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "appleBuild.build",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b"
+      },
+      {
+        "command": "appleBuild.run",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
+      },
+      {
+        "command": "appleBuild.stop",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+."
+      }
+    ],
+    "configuration": {
+      "title": "Apple Build",
+      "properties": {
+        "appleBuild.quiet": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pass -quiet to xcodebuild so the output channel shows only warnings, errors, and the final result. Disable for full build logs."
+        },
+        "appleBuild.revealOutput": {
+          "type": "string",
+          "default": "onError",
+          "enum": [
+            "never",
+            "onError",
+            "always"
+          ],
+          "enumDescriptions": [
+            "Never open the output panel automatically (use the status bar / 'Show Build Output' command).",
+            "Only open the output panel when a build fails.",
+            "Open the output panel on every build/run."
+          ],
+          "description": "When to automatically reveal the Apple Build output panel."
+        },
+        "appleBuild.outputFilter": {
+          "type": "string",
+          "default": "",
+          "description": "Optional regular expression. When set, only build output lines matching it are shown (e.g. \"error:|warning:|BUILD SUCCEEDED|BUILD FAILED\"). Applied on top of -quiet. Leave empty to show all (already-quieted) output."
+        },
+        "appleBuild.additionalBuildArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments appended to every xcodebuild invocation (e.g. [\"-configuration\", \"Debug\", \"CODE_SIGNING_ALLOWED=NO\"])."
+        },
+        "appleBuild.includeAllSimulators": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include watchOS / tvOS / visionOS simulators in the device picker. When false, only iOS/iPadOS simulators plus My Mac are listed."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
