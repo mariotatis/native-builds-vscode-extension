@@ -1,0 +1,168 @@
+{
+  "name": "native-builds",
+  "displayName": "Native Builds",
+  "description": "Build & run iOS / macOS / iPadOS Xcode projects and Android (Gradle/Kotlin) apps from the VS Code status bar with scheme/variant + device pickers and a play/stop button.",
+  "version": "0.9.6",
+  "publisher": "MarioTatis",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mariotatis/native-builds-vscode-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mariotatis/native-builds-vscode-extension/issues"
+  },
+  "homepage": "https://github.com/mariotatis/native-builds-vscode-extension#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "xcode",
+    "gradle",
+    "build",
+    "ios",
+    "android"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "workspaceContains:**/*.xcodeproj",
+    "workspaceContains:**/*.xcworkspace",
+    "workspaceContains:**/build.gradle",
+    "workspaceContains:**/build.gradle.kts",
+    "workspaceContains:**/settings.gradle",
+    "workspaceContains:**/settings.gradle.kts",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nativeBuilds.selectScheme",
+        "title": "Native Builds: Select Scheme"
+      },
+      {
+        "command": "nativeBuilds.selectDestination",
+        "title": "Native Builds: Select Destination (Device)"
+      },
+      {
+        "command": "nativeBuilds.build",
+        "title": "Native Builds: Build",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "nativeBuilds.run",
+        "title": "Native Builds: Run on Selected Device",
+        "icon": "$(play)"
+      },
+      {
+        "command": "nativeBuilds.stop",
+        "title": "Native Builds: Stop Build / Run",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "nativeBuilds.refresh",
+        "title": "Native Builds: Refresh Project / Schemes / Devices"
+      },
+      {
+        "command": "nativeBuilds.buildMenu",
+        "title": "Native Builds: Choose Build Action"
+      },
+      {
+        "command": "nativeBuilds.showOutput",
+        "title": "Native Builds: Show Build Output"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "nativeBuilds.build",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b"
+      },
+      {
+        "command": "nativeBuilds.run",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
+      },
+      {
+        "command": "nativeBuilds.stop",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+."
+      }
+    ],
+    "configuration": {
+      "title": "Native Builds",
+      "properties": {
+        "nativeBuilds.quiet": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pass -quiet to xcodebuild so the output channel shows only warnings, errors, and the final result. Disable for full build logs."
+        },
+        "nativeBuilds.revealOutput": {
+          "type": "string",
+          "default": "onError",
+          "enum": [
+            "never",
+            "onError",
+            "always"
+          ],
+          "enumDescriptions": [
+            "Never open the output panel automatically (use the status bar / 'Show Build Output' command).",
+            "Only open the output panel when a build fails.",
+            "Open the output panel on every build/run."
+          ],
+          "description": "When to automatically reveal the Native Builds output panel."
+        },
+        "nativeBuilds.outputFilter": {
+          "type": "string",
+          "default": "",
+          "description": "Optional regular expression. When set, only build output lines matching it are shown (e.g. \"error:|warning:|BUILD SUCCEEDED|BUILD FAILED\"). Applied on top of -quiet. Leave empty to show all (already-quieted) output."
+        },
+        "nativeBuilds.additionalBuildArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments appended to every xcodebuild invocation (e.g. [\"-configuration\", \"Debug\", \"CODE_SIGNING_ALLOWED=NO\"])."
+        },
+        "nativeBuilds.includeAllSimulators": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include watchOS / tvOS / visionOS simulators in the device picker. When false, only iOS/iPadOS simulators plus My Mac are listed."
+        },
+        "nativeBuilds.androidSdkPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Android SDK (the folder containing 'platform-tools' and 'emulator'). Leave empty to auto-detect from ANDROID_HOME / ANDROID_SDK_ROOT or the platform default (~/Library/Android/sdk on macOS)."
+        },
+        "nativeBuilds.javaHome": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a JDK home used to run Gradle (the folder containing 'bin/java'). Leave empty to auto-detect from JAVA_HOME, then Android Studio's bundled JDK, then installed JVMs. Example: '/Applications/Android Studio.app/Contents/jbr/Contents/Home'."
+        },
+        "nativeBuilds.gradleArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments appended to every Gradle invocation for Android projects (e.g. [\"--offline\", \"-Pfoo=bar\"])."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
