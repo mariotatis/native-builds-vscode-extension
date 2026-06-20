@@ -13,3 +13,5 @@ node_modules/**
 out/**/*.map
 package-lock.json
 **/.DS_Store
+.zip
+*.vsix

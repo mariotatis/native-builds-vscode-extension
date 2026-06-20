@@ -384,7 +384,10 @@ class NativeBuildsController {
       this.scheme ?? "none"
     }\nClick to change ${noun}`;
 
-    this.destinationItem.text = `$(device-mobile) ${
+    const destIcon = this.destination
+      ? destinationIconId(this.destination)
+      : "device-mobile";
+    this.destinationItem.text = `$(${destIcon}) ${
       this.destination?.label ?? "No device"
     }`;
     this.destinationItem.tooltip = `Destination: ${
@@ -506,6 +509,7 @@ function buildDestinationQuickPick(
       items.push({
         label: d.label,
         detail: d.detail,
+        iconPath: new vscode.ThemeIcon(destinationIconId(d)),
         destination: d,
       });
     }
@@ -539,4 +543,41 @@ function errMsg(err: unknown): string {
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Picks a codicon / contributed-icon id that matches the destination's device
+// type, so a Mac shows a display, an iPad a tablet, an Apple TV a TV, etc.
+// `apple-build-tablet` and `apple-build-tv` are contributed in package.json
+// (no built-in codicon exists for those shapes); the rest are stock codicons.
+function destinationIconId(dest: Destination): string {
+  const value = dest.value.toLowerCase();
+  const label = dest.label.toLowerCase();
+
+  // macOS → display
+  if (dest.group === "mac" || value.includes("platform=macos")) {
+    return "device-desktop";
+  }
+  // visionOS / Apple Vision Pro → VR headset
+  if (value.includes("visionos") || value.includes("xros") || label.includes("vision")) {
+    return "vr";
+  }
+  // watchOS / Apple Watch / Wear OS → watch
+  if (value.includes("watchos") || label.includes("watch") || label.includes("wear")) {
+    return "watch";
+  }
+  // tvOS / Apple TV / Android TV → TV
+  if (
+    value.includes("tvos") ||
+    label.includes("apple tv") ||
+    label.includes("android tv") ||
+    /(^|[\s_-])tv([\s_-]|\d|$)/.test(label)
+  ) {
+    return "apple-build-tv";
+  }
+  // iPad / Android tablet → tablet
+  if (label.includes("ipad") || label.includes("tablet")) {
+    return "apple-build-tablet";
+  }
+  // iPhone / Android phone / generic iOS → phone
+  return "device-mobile";
 }

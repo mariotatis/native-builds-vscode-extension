@@ -4,7 +4,7 @@
   "description": "Build & run iOS / macOS / iPadOS Xcode projects and Android (Gradle/Kotlin) apps from the VS Code status bar with scheme/variant + device pickers and a play/stop button.",
   "version": "0.9.6",
   "publisher": "MarioTatis",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/mariotatis/native-builds-vscode-extension.git"
@@ -92,6 +92,22 @@
         "mac": "cmd+alt+."
       }
     ],
+    "icons": {
+      "apple-build-tablet": {
+        "description": "iPad / tablet device",
+        "default": {
+          "fontPath": "media/apple-build-icons.woff",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "apple-build-tv": {
+        "description": "Apple TV / tvOS device",
+        "default": {
+          "fontPath": "media/apple-build-icons.woff",
+          "fontCharacter": "\\E002"
+        }
+      }
+    },
     "configuration": {
       "title": "Native Builds",
       "properties": {

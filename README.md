@@ -68,16 +68,16 @@ Edit in **Settings** (`Cmd+,` → search "Native Builds") or `settings.json`. Cl
 and other build actions are run as a one-off from the status bar **⌄** dropdown
 (the **Build** button always does a plain build), not configured here.
 
-| Setting | Default | Description |
-| --- | --- | --- |
-| `nativeBuilds.quiet` | `true` | Pass `-quiet` to xcodebuild — only warnings, errors, and the final result. |
-| `nativeBuilds.revealOutput` | `onError` | When to auto-open the output panel: `never`, `onError`, or `always`. |
-| `nativeBuilds.outputFilter` | `""` | Regex; only matching output lines are shown (e.g. `error:\|warning:\|BUILD SUCCEEDED\|BUILD FAILED`). |
-| `nativeBuilds.additionalBuildArgs` | `[]` | Extra args appended to every **xcodebuild** invocation (e.g. `["-configuration", "Debug", "CODE_SIGNING_ALLOWED=NO"]`). |
-| `nativeBuilds.includeAllSimulators` | `false` | Also list watchOS / tvOS / visionOS simulators. |
-| `nativeBuilds.androidSdkPath` | `""` | Path to the Android SDK (containing `platform-tools` / `emulator`). Empty = auto-detect. |
-| `nativeBuilds.javaHome` | `""` | JDK home used to run Gradle (containing `bin/java`). Empty = auto-detect (JAVA_HOME → Android Studio JBR → installed JVMs). |
-| `nativeBuilds.gradleArgs` | `[]` | Extra args appended to every **Gradle** invocation (e.g. `["--offline"]`). |
+| Setting                             | Default   | Description                                                                                                                 |
+|-------------------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `nativeBuilds.quiet`                | `true`    | Pass `-quiet` to xcodebuild — only warnings, errors, and the final result.                                                  |
+| `nativeBuilds.revealOutput`         | `onError` | When to auto-open the output panel: `never`, `onError`, or `always`.                                                        |
+| `nativeBuilds.outputFilter`         | `""`      | Regex; only matching output lines are shown (e.g. `error:\|warning:\|BUILD SUCCEEDED\|BUILD FAILED`).                       |
+| `nativeBuilds.additionalBuildArgs`  | `[]`      | Extra args appended to every **xcodebuild** invocation (e.g. `["-configuration", "Debug", "CODE_SIGNING_ALLOWED=NO"]`).     |
+| `nativeBuilds.includeAllSimulators` | `false`   | Also list watchOS / tvOS / visionOS simulators.                                                                             |
+| `nativeBuilds.androidSdkPath`       | `""`      | Path to the Android SDK (containing `platform-tools` / `emulator`). Empty = auto-detect.                                    |
+| `nativeBuilds.javaHome`             | `""`      | JDK home used to run Gradle (containing `bin/java`). Empty = auto-detect (JAVA_HOME → Android Studio JBR → installed JVMs). |
+| `nativeBuilds.gradleArgs`           | `[]`      | Extra args appended to every **Gradle** invocation (e.g. `["--offline"]`).                                                  |
 
 The `quiet` / `additionalBuildArgs` settings apply to Xcode; `gradleArgs` applies
 to Android. `revealOutput` and `outputFilter` apply to both.
@@ -99,3 +99,15 @@ invokes the developer's own locally installed toolchain (Xcode, the Android SDK,
 and Gradle). "Xcode", "iOS", "macOS", "iPadOS", "Android", "Kotlin", and related
 names are trademarks of their respective owners and are used here only to
 describe compatibility.
+
+## Security
+
+Native Builds executes only locally installed developer tools:
+
+- xcodebuild
+- xcrun
+- gradlew
+- adb
+- emulator
+
+The extension does not download code, execute remote scripts, collect user data, or communicate with external services.
